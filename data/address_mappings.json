@@ -1,0 +1,44 @@
+[
+  {
+    "semantic_name": "temperature_sensor_01",
+    "description": "temperature sensor",
+    "data_type": "FLOAT32",
+    "unit": "C",
+    "addresses": {
+      "Modbus TCP": "40001",
+      "OPC UA": "ns=2;i=1001",
+      "MQTT": "sensors/temperature/01",
+      "HTTP": "/api/sensors/temperature",
+      "CoAP": "/sensors/temp",
+      "LoRaWAN": "device_temp_01"
+    }
+  },
+  {
+    "semantic_name": "pressure_sensor_01",
+    "description": "pressure sensor",
+    "data_type": "FLOAT32",
+    "unit": "kPa",
+    "addresses": {
+      "Modbus TCP": "40004",
+      "OPC UA": "ns=2;i=1002",
+      "MQTT": "sensors/pressure/01",
+      "HTTP": "/api/sensors/pressure",
+      "CoAP": "/sensors/pressure",
+      "LoRaWAN": "device_press_01"
+    }
+  },
+  {
+    "semantic_name": "valve_control_01",
+    "description": "valve opening",
+    "data_type": "UINT16",
+    "unit": "%",
+    "addresses": {
+      "Modbus TCP": "40003",
+      "OPC UA": "ns=2;i=1003",
+      "MQTT": "actuators/valve/01",
+      "HTTP": "/api/actuators/valve",
+      "CoAP": "/actuators/valve",
+      "LoRaWAN": "device_valve_01"
+    }
+  }
+]

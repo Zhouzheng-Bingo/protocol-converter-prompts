@@ -1,0 +1,248 @@
+{
+  "Modbus TCP": {
+    "port": 502,
+    "native_mode": "sync",
+    "data_pattern": "polling",
+    "library": {
+      "sync": "pymodbus",
+      "async": "pymodbus"
+    },
+    "imports": {
+      "sync": "from pymodbus.client import ModbusTcpClient\nimport struct\nimport time",
+      "async": "from pymodbus.client import AsyncModbusTcpClient\nimport struct\nimport asyncio"
+    },
+    "client_init": {
+      "sync": "client = ModbusTcpClient(host='{host}', port={port})",
+      "async": "client = AsyncModbusTcpClient(host='{host}', port={port})"
+    },
+    "connect": {
+      "sync": "client.connect()",
+      "async": "await client.connect()"
+    },
+    "disconnect": {
+      "sync": "client.close()",
+      "async": "client.close()"
+    },
+    "read_template": {
+      "sync": "address_offset = {address} - 40001\nresult = client.read_holding_registers(address=address_offset, count=2 if '{data_type}' == 'FLOAT32' else 1, slave=1)\nif not result.isError():\n    if '{data_type}' == 'FLOAT32':\n        value = struct.unpack('>f', struct.pack('>HH', result.registers[0], result.registers[1]))[0]\n    else:\n        value = result.registers[0]\nelse:\n    raise Exception(f'Read Modbus {address} failed: {result}')",
+      "async": "address_offset = {address} - 40001\nresult = await client.read_holding_registers(address=address_offset, count=2 if '{data_type}' == 'FLOAT32' else 1, slave=1)\nif not result.isError():\n    if '{data_type}' == 'FLOAT32':\n        value = struct.unpack('>f', struct.pack('>HH', result.registers[0], result.registers[1]))[0]\n    else:\n        value = result.registers[0]\nelse:\n    raise Exception(f'Async read Modbus {address} failed: {result}')"
+    },
+    "write_template": {
+      "sync": "address_offset = {address} - 40001\nif '{data_type}' == 'FLOAT32':\n    high, low = struct.unpack('>HH', struct.pack('>f', float({value})))\n    result = client.write_registers(address=address_offset, values=[high, low], slave=1)\nelse:\n    result = client.write_register(address=address_offset, value=int({value}), slave=1)\nif result.isError():\n    raise Exception(f'Write Modbus {address} failed')",
+      "async": "address_offset = {address} - 40001\nif '{data_type}' == 'FLOAT32':\n    high, low = struct.unpack('>HH', struct.pack('>f', float({value})))\n    result = await client.write_registers(address=address_offset, values=[high, low], slave=1)\nelse:\n    result = await client.write_register(address=address_offset, value=int({value}), slave=1)\nif result.isError():\n    raise Exception(f'Async write Modbus {address} failed')"
+    },
+    "address_format": "40001-style holding-register address; subtract 40001 to obtain the register offset.",
+    "special_notes": "FLOAT32 occupies two consecutive 16-bit registers; use big-endian struct packing/unpacking.",
+    "type_mapping": {
+      "FLOAT32": "FLOAT32",
+      "UINT16": "UINT16",
+      "INT16": "INT16",
+      "BOOL": "BOOL"
+    }
+  },
+  "OPC UA": {
+    "port": 4840,
+    "native_mode": "async",
+    "data_pattern": "subscription",
+    "library": {
+      "sync": "opcua",
+      "async": "asyncua"
+    },
+    "imports": {
+      "sync": "from opcua import Client, ua\nimport time",
+      "async": "from asyncua import Client, ua\nimport asyncio\nimport logging"
+    },
+    "client_init": {
+      "sync": "client = Client('{url}')",
+      "async": "client = Client('{url}')"
+    },
+    "connect": {
+      "sync": "client.connect()",
+      "async": "await client.connect()"
+    },
+    "disconnect": {
+      "sync": "client.disconnect()",
+      "async": "await client.disconnect()"
+    },
+    "read_template": {
+      "sync": "node = client.get_node('{address}')\nvalue = node.get_value()",
+      "async": "node = client.get_node('{address}')\nvalue = await node.read_value()\nif value is None:\n    raise Exception(f'Read OPC UA node {address} failed')"
+    },
+    "write_template": {
+      "sync": "node = client.get_node('{address}')\nnode.set_value(ua.Variant({value}, ua.VariantType.{variant_type}))",
+      "async": "node = client.get_node('{address}')\nawait node.write_value(ua.Variant({value}, ua.VariantType.{variant_type}))"
+    },
+    "address_format": "NodeId string, e.g., ns=2;i=1001.",
+    "special_notes": "Use ua.Variant with the type-specific VariantType when writing OPC UA values.",
+    "type_mapping": {
+      "FLOAT32": "Float",
+      "UINT16": "UInt16",
+      "INT16": "Int16",
+      "BOOL": "Boolean"
+    }
+  },
+  "MQTT": {
+    "port": 1883,
+    "native_mode": "async",
+    "data_pattern": "subscription",
+    "library": {
+      "sync": "paho-mqtt",
+      "async": "aiomqtt"
+    },
+    "imports": {
+      "sync": "import paho.mqtt.client as mqtt\nimport json\nimport time",
+      "async": "import aiomqtt\nimport asyncio\nimport json\nimport time"
+    },
+    "client_init": {
+      "sync": "client = mqtt.Client()",
+      "async": "aiomqtt.Client(hostname='{host}', port={port})"
+    },
+    "connect": {
+      "sync": "client.connect('{host}', {port}, 60)",
+      "async": "# use async with aiomqtt.Client(...) for connection management"
+    },
+    "disconnect": {
+      "sync": "client.disconnect()",
+      "async": "# async context manager disconnects automatically"
+    },
+    "read_template": {
+      "sync": "# subscribe and handle messages via on_message callback",
+      "async": "async with aiomqtt.Client(hostname='{host}', port={port}) as client:\n    await client.subscribe('{address}')\n    async for message in client.messages:\n        payload = json.loads(message.payload.decode())"
+    },
+    "write_template": {
+      "sync": "payload = json.dumps({'value': {value}, 'timestamp': time.time()})\nclient.publish('{address}', payload)",
+      "async": "payload = json.dumps({'value': {value}, 'timestamp': time.time()})\nawait client.publish('{address}', payload)"
+    },
+    "address_format": "MQTT topic string, e.g., sensors/temperature/01.",
+    "special_notes": "Publish/subscribe protocol; when used as source, use event-driven message handling and process all mappings matching the topic.",
+    "type_mapping": {
+      "FLOAT32": "float",
+      "UINT16": "int",
+      "INT16": "int",
+      "BOOL": "bool"
+    }
+  },
+  "HTTP": {
+    "port": 8080,
+    "native_mode": "sync",
+    "data_pattern": "request_response",
+    "library": {
+      "sync": "requests",
+      "async": "aiohttp"
+    },
+    "imports": {
+      "sync": "import requests\nimport json\nimport time",
+      "async": "import aiohttp\nimport asyncio\nimport json\nimport time"
+    },
+    "client_init": {
+      "sync": "session = requests.Session()",
+      "async": "session = aiohttp.ClientSession()"
+    },
+    "connect": {
+      "sync": "# HTTP does not require an explicit connection step",
+      "async": "# HTTP does not require an explicit connection step"
+    },
+    "disconnect": {
+      "sync": "session.close()",
+      "async": "await session.close()"
+    },
+    "read_template": {
+      "sync": "response = session.get(\"http://{host}:{port}{endpoint}\")\nif response.status_code == 200:\n    data = response.json()\n    value = data.get(\"{field}\", data.get(\"value\"))\nelse:\n    raise Exception(f\"HTTP read failed: {response.status_code}\")",
+      "async": "async with session.get(f\"http://{host}:{port}{endpoint}\") as response:\n    if response.status == 200:\n        data = await response.json()\n        value = data.get(\"{field}\", data.get(\"value\"))\n    else:\n        raise Exception(f\"HTTP read failed: {response.status}\")"
+    },
+    "write_template": {
+      "sync": "payload = {\"field\": \"{semantic_name}\", \"value\": {value}}\nresponse = session.post(\"http://{host}:{port}{endpoint}\", json=payload)\nif response.status_code not in [200, 201]:\n    raise Exception(f\"HTTP write failed: {response.status_code}\")",
+      "async": "payload = {\"field\": \"{semantic_name}\", \"value\": {value}}\nasync with session.post(f\"http://{host}:{port}{endpoint}\", json=payload) as response:\n    if response.status not in [200, 201]:\n        raise Exception(f\"HTTP write failed: {response.status}\")"
+    },
+    "address_format": "REST endpoint path, e.g., /api/sensors/temperature.",
+    "special_notes": "Request/response API; use JSON payloads and explicit status-code checks.",
+    "type_mapping": {
+      "FLOAT32": "float",
+      "UINT16": "int",
+      "INT16": "int",
+      "BOOL": "bool"
+    }
+  },
+  "CoAP": {
+    "port": 5683,
+    "native_mode": "async",
+    "data_pattern": "request_response",
+    "library": {
+      "sync": "aiocoap",
+      "async": "aiocoap"
+    },
+    "imports": {
+      "sync": "import asyncio\nfrom aiocoap import *\nimport json",
+      "async": "import asyncio\nfrom aiocoap import Context, Message, PUT, GET\nimport json"
+    },
+    "client_init": {
+      "sync": "context = await Context.create_client_context()",
+      "async": "context = await Context.create_client_context()"
+    },
+    "connect": {
+      "sync": "# CoAP does not require an explicit connection step",
+      "async": "# CoAP does not require an explicit connection step"
+    },
+    "disconnect": {
+      "sync": "await context.shutdown()",
+      "async": "await context.shutdown()"
+    },
+    "read_template": {
+      "sync": "request = Message(code=GET, uri=f\"coap://{host}:{port}{uri}\")\nresponse = await context.request(request).response\nif response.code.is_successful():\n    data = json.loads(response.payload.decode())\n    value = data.get(\"value\")\nelse:\n    raise Exception(f\"CoAP read failed: {response.code}\")",
+      "async": "request = Message(code=GET, uri=f\"coap://{host}:{port}{uri}\")\nresponse = await context.request(request).response\nif response.code.is_successful():\n    data = json.loads(response.payload.decode())\n    value = data.get(\"value\")\nelse:\n    raise Exception(f\"CoAP read failed: {response.code}\")"
+    },
+    "write_template": {
+      "sync": "payload = json.dumps({\"value\": {value}}).encode()\nrequest = Message(code=PUT, uri=f\"coap://{host}:{port}{uri}\", payload=payload)\nresponse = await context.request(request).response\nif not response.code.is_successful():\n    raise Exception(f\"CoAP write failed: {response.code}\")",
+      "async": "payload = json.dumps({\"value\": {value}}).encode()\nrequest = Message(code=PUT, uri=f\"coap://{host}:{port}{uri}\", payload=payload)\nresponse = await context.request(request).response\nif not response.code.is_successful():\n    raise Exception(f\"CoAP write failed: {response.code}\")"
+    },
+    "address_format": "URI path, e.g., /sensors/temp.",
+    "special_notes": "CoAP is represented through aiocoap and is executed in an async event loop.",
+    "type_mapping": {
+      "FLOAT32": "float",
+      "UINT16": "int",
+      "INT16": "int",
+      "BOOL": "bool"
+    }
+  },
+  "LoRaWAN": {
+    "port": 1700,
+    "native_mode": "async",
+    "data_pattern": "polling",
+    "library": {
+      "sync": "requests",
+      "async": "aiohttp"
+    },
+    "imports": {
+      "sync": "import requests\nimport json\nimport time",
+      "async": "import aiohttp\nimport asyncio\nimport json\nimport time"
+    },
+    "client_init": {
+      "sync": "session = requests.Session()",
+      "async": "session = aiohttp.ClientSession()"
+    },
+    "connect": {
+      "sync": "# LoRaWAN HTTP API does not require explicit connection",
+      "async": "# LoRaWAN HTTP API does not require explicit connection"
+    },
+    "disconnect": {
+      "sync": "session.close()",
+      "async": "await session.close()"
+    },
+    "read_template": {
+      "sync": "response = session.get(f\"http://{host}:{port}/api/lorawan/devices/{device_id}/data\")\nif response.status_code == 200:\n    data = response.json()\n    value = data.get(\"payload_fields\", {}).get(\"value\", data.get(\"value\"))\nelse:\n    raise Exception(f\"LoRaWAN read failed: {response.status_code}\")",
+      "async": "async with session.get(f\"http://{host}:{port}/api/lorawan/devices/{device_id}/data\") as response:\n    if response.status == 200:\n        data = await response.json()\n        value = data.get(\"payload_fields\", {}).get(\"value\", data.get(\"value\"))\n    else:\n        raise Exception(f\"LoRaWAN read failed: {response.status}\")"
+    },
+    "write_template": {
+      "sync": "payload = {\"payload_fields\": {\"value\": {value}, \"timestamp\": time.time()}}\nresponse = session.post(f\"http://{host}:{port}/api/lorawan/devices/{device_id}/data\", json=payload)\nif response.status_code not in [200, 201]:\n    raise Exception(f\"LoRaWAN write failed: {response.status_code}\")",
+      "async": "payload = {\"payload_fields\": {\"value\": {value}, \"timestamp\": time.time()}}\nasync with session.post(f\"http://{host}:{port}/api/lorawan/devices/{device_id}/data\", json=payload) as response:\n    if response.status not in [200, 201]:\n        raise Exception(f\"LoRaWAN write failed: {response.status}\")"
+    },
+    "address_format": "Device identifier, e.g., device_temp_01.",
+    "special_notes": "LoRaWAN is accessed through an HTTP API exposing device payload_fields.",
+    "type_mapping": {
+      "FLOAT32": "float",
+      "UINT16": "int",
+      "INT16": "int",
+      "BOOL": "bool"
+    }
+  }
+}

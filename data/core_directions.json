@@ -1,0 +1,62 @@
+[
+  {
+    "source": "HTTP",
+    "target": "Modbus TCP",
+    "interaction": "Sync -> Sync"
+  },
+  {
+    "source": "HTTP",
+    "target": "OPC UA",
+    "interaction": "Sync -> Async"
+  },
+  {
+    "source": "Modbus TCP",
+    "target": "HTTP",
+    "interaction": "Sync -> Sync"
+  },
+  {
+    "source": "MQTT",
+    "target": "Modbus TCP",
+    "interaction": "Async -> Sync"
+  },
+  {
+    "source": "MQTT",
+    "target": "OPC UA",
+    "interaction": "Async -> Async"
+  },
+  {
+    "source": "OPC UA",
+    "target": "HTTP",
+    "interaction": "Async -> Sync"
+  },
+  {
+    "source": "HTTP",
+    "target": "CoAP",
+    "interaction": "Sync -> Async"
+  },
+  {
+    "source": "CoAP",
+    "target": "MQTT",
+    "interaction": "Async -> Async"
+  },
+  {
+    "source": "MQTT",
+    "target": "CoAP",
+    "interaction": "Async -> Async"
+  },
+  {
+    "source": "HTTP",
+    "target": "LoRaWAN",
+    "interaction": "Sync -> Async"
+  },
+  {
+    "source": "LoRaWAN",
+    "target": "MQTT",
+    "interaction": "Async -> Async"
+  },
+  {
+    "source": "LoRaWAN",
+    "target": "OPC UA",
+    "interaction": "Async -> Async"
+  }
+]
